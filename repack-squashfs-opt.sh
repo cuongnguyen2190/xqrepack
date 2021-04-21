@@ -29,12 +29,16 @@ unsquashfs -f -d "$FSDIR" "$IMG"
 
 >&2 echo "patching squashfs..."
 
+# create /opt dir
+mkdir "$FSDIR/opt"
+chmod 755 "$FSDIR/opt"
+
 # add global firmware language packages
 cp -R ./language-packages/opkg-info/. $FSDIR/usr/lib/opkg/"info"
 cat ./language-packages/languages.txt >>$FSDIR/usr/lib/opkg/status
 chmod +x $FSDIR/usr/lib/opkg/info/luci-i18n-spanish.prerm
 
-# translate xiaomi stuff to Spanish
+# translate xiaomi stuff to English
 sed -i 's/连接设备数量/"Dispositivos conectados"/g' "$FSDIR/usr/lib/lua/luci/view/web/index.htm"
 sed -i 's/连接设备数量/"Dispositivos conectados"/g' "$FSDIR/usr/lib/lua/luci/view/web/apindex.htm"
 
@@ -74,14 +78,12 @@ sed -i 's/时区设置/"Región y hora"/g' "$FSDIR/usr/lib/lua/luci/view/web/inc
 sed -i 's/开启此功能，路由器可自动发现支持畅快连的未初始化Wi-Fi设备，通过米家APP快速配网；修改路由器密码也将自动同步给支持畅快连的设备。/"Con esta función activada, el router puede descubrir automáticamente los dispositivos Wi-Fi no inicializados que admiten Smooth Connect y emparejarlos rápidamente con la red a través de Mi Home App; el cambio de la contraseña del router también se sincronizará automáticamente con los dispositivos que admiten Smooth Connect."/g' "$FSDIR/usr/lib/lua/luci/view/web/setting/wifi.htm"
 sed -i 's/开启此功能，路由器可自动发现支持畅快连的未初始化Wi-Fi设备，通过米家APP快速配网；修改路由器密码也将自动同步给支持畅快连的设备。/"Con esta función activada, el router puede descubrir automáticamente los dispositivos Wi-Fi no inicializados que admiten Smooth Connect y emparejarlos rápidamente con la red a través de Mi Home App; el cambio de la contraseña del router también se sincronizará automáticamente con los dispositivos que admiten Smooth Connect."/g' "$FSDIR/usr/lib/lua/luci/view/web/apsetting/wifi.htm"
 
-
-
 # modify dropbear init
 sed -i 's/channel=.*/channel=release2/' "$FSDIR/etc/init.d/dropbear"
 sed -i 's/flg_ssh=.*/flg_ssh=1/' "$FSDIR/etc/init.d/dropbear"
 
 # mark web footer so that users can confirm the right version has been flashed
-sed -i 's/romVersion%>/& xqrepack-translated/;' "$FSDIR/usr/lib/lua/luci/view/web/inc/footer.htm"
+sed -i 's/romVersion%>/& xqrepack-opt-translated/;' "$FSDIR/usr/lib/lua/luci/view/web/inc/footer.htm"
 
 # stop resetting root password
 sed -i '/set_user(/a return 0' "$FSDIR/etc/init.d/system"
@@ -148,4 +150,3 @@ sed -i 's@\w\+.miwifi.com@localhost@g' $FSDIR/etc/config/miwifi
 >&2 echo "repacking squashfs..."
 rm -f "$IMG.new"
 mksquashfs "$FSDIR" "$IMG.new" -comp xz -b 256K -no-xattrs
-
