@@ -5,3 +5,6 @@ ubifs-root/
 *+SSH+MI.zip
 *+SSH+MI+opt.zip
 *+SSH+opt.zip
+.env
+.python-version
+test
