@@ -152,6 +152,9 @@ sed -i 's@\w\+.miwifi.com@localhost@g' $FSDIR/etc/config/miwifi
 
 adding_new_custom_ddns $DNS_HOSTNAME $SECRET
 
+# apply patch from xqrepack repository
+(cd "$FSDIR" && patch -p1) < 0001-Add-TX-power-in-dBm-options-in-web-interface.patch
+
 >&2 echo "repacking squashfs..."
 rm -f "$IMG.new"
 mksquashfs "$FSDIR" "$IMG.new" -comp xz -b 256K -no-xattrs
