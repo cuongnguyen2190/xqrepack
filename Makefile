@@ -7,15 +7,13 @@ TARGETS_SSH_MI_OPT:=$(patsubst %,%+SSH+MI+opt.zip,$(FIRMWARES))
 TARGETS_SSH_OPT:=$(patsubst %,%+SSH+opt.zip,$(FIRMWARES))
 TARGETS:=$(shell echo $(TARGETS_SSH) $(TARGETS_SSH_MI) $(TARGETS_SSH_MI_OPT) $(TARGETS_SSH_OPT) | sed 's/ /\n/g' | sort)
 
-# TARGETS:=$(shell echo $(TARGETS_SSH_OPT) | sed 's/ /\n/g' | sort)
-
 all: $(TARGETS)
 
 %+SSH.zip: orig-firmwares/%.bin repack-squashfs.sh
 	rm -f $@
 	-rm -rf ubifs-root/$*.bin
 	ubireader_extract_images -w orig-firmwares/$*.bin
-	fakeroot -- ./repack-squashfs.sh ubifs-root/$*.bin/img-*_vol-ubi_rootfs.ubifs cuongnguyen.online 1234567890
+	fakeroot -- ./repack-squashfs.sh ubifs-root/$*.bin/img-*_vol-ubi_rootfs.ubifs cuong.ga 1234567890
 	./ubinize.sh ubifs-root/$*.bin/img-*_vol-kernel.ubifs ubifs-root/$*.bin/img-*_vol-ubi_rootfs.ubifs.new
 	zip -9 $@ r3600-raw-img.bin
 	rm -f r3600-raw-img.bin
@@ -24,7 +22,7 @@ all: $(TARGETS)
 	rm -f $@
 	-rm -rf ubifs-root/$*.bin
 	ubireader_extract_images -w orig-firmwares/$*.bin
-	fakeroot -- ./repack-squashfs-mi.sh ubifs-root/$*.bin/img-*_vol-ubi_rootfs.ubifs cuongnguyen.online 1234567890
+	fakeroot -- ./repack-squashfs-mi.sh ubifs-root/$*.bin/img-*_vol-ubi_rootfs.ubifs cuong.ga 1234567890
 	./ubinize.sh ubifs-root/$*.bin/img-*_vol-kernel.ubifs ubifs-root/$*.bin/img-*_vol-ubi_rootfs.ubifs.new
 	zip -9 $@ r3600-raw-img.bin
 	rm -f r3600-raw-img.bin
@@ -33,7 +31,7 @@ all: $(TARGETS)
 	rm -f $@
 	-rm -rf ubifs-root/$*.bin
 	ubireader_extract_images -w orig-firmwares/$*.bin
-	fakeroot -- ./repack-squashfs-mi-opt.sh ubifs-root/$*.bin/img-*_vol-ubi_rootfs.ubifs cuongnguyen.online 1234567890
+	fakeroot -- ./repack-squashfs-mi-opt.sh ubifs-root/$*.bin/img-*_vol-ubi_rootfs.ubifs cuong.ga 1234567890
 	./ubinize.sh ubifs-root/$*.bin/img-*_vol-kernel.ubifs ubifs-root/$*.bin/img-*_vol-ubi_rootfs.ubifs.new
 	zip -9 $@ r3600-raw-img.bin
 	rm -f r3600-raw-img.bin
@@ -42,7 +40,7 @@ all: $(TARGETS)
 	rm -f $@
 	-rm -rf ubifs-root/$*.bin
 	ubireader_extract_images -w orig-firmwares/$*.bin
-	fakeroot -- ./repack-squashfs-opt.sh ubifs-root/$*.bin/img-*_vol-ubi_rootfs.ubifs cuongnguyen.online 1234567890
+	fakeroot -- ./repack-squashfs-opt.sh ubifs-root/$*.bin/img-*_vol-ubi_rootfs.ubifs cuong.ga 1234567890
 	./ubinize.sh ubifs-root/$*.bin/img-*_vol-kernel.ubifs ubifs-root/$*.bin/img-*_vol-ubi_rootfs.ubifs.new
 	zip -9 $@ r3600-raw-img.bin
 	rm -f r3600-raw-img.bin

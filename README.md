@@ -1,4 +1,4 @@
-xqrepack fork
+xqrepack fork - added european languages ONLY FOR CHINESE FIRMWARE
 =========
 
 These scripts allow you to modify the *Xiaomi R3600* firmware image to make sure SSH and UART access is always enabled.

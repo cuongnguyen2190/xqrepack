@@ -1,0 +1,62 @@
+Package: luci-i18n-russian
+Version: 0.11.1-1
+Depends: libc
+Status: install user installed
+Architecture: aarch64_cortex-a53
+Installed-Time: 1601283955
+
+Package: luci-i18n-portuguese
+Version: 0.11.1-1
+Depends: libc
+Status: install user installed
+Architecture: aarch64_cortex-a53
+Installed-Time: 1601283955
+
+Package: luci-i18n-turkish
+Version: 0.11.1-1
+Depends: libc
+Status: install user installed
+Architecture: aarch64_cortex-a53
+Installed-Time: 1601283955
+
+Package: luci-i18n-italian
+Version: 0.11.1-1
+Depends: libc
+Status: install user installed
+Architecture: aarch64_cortex-a53
+Installed-Time: 1601283955
+
+Package: luci-i18n-spanish
+Version: 0.11.1-1
+Depends: libc
+Status: install user installed
+Architecture: aarch64_cortex-a53
+Installed-Time: 1601283955
+
+Package: luci-i18n-german
+Version: 0.11.1-1
+Depends: libc
+Status: install user installed
+Architecture: aarch64_cortex-a53
+Installed-Time: 1601283955
+
+Package: luci-i18n-french
+Version: 0.11.1-1
+Depends: libc
+Status: install user installed
+Architecture: aarch64_cortex-a53
+Installed-Time: 1601283955
+
+Package: luci-i18n-ukrainian
+Version: 0.11.1-1
+Depends: libc
+Status: install user installed
+Architecture: aarch64_cortex-a53
+Installed-Time: 1601283955
+
+Package: luci-i18n-english
+Version: 0.11.1-1
+Depends: libc
+Status: install user installed
+Architecture: aarch64_cortex-a53
+Installed-Time: 1601283955
