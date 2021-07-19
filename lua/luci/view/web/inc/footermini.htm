@@ -1,0 +1,10 @@
+<%
+local XQSysUtil = require "xiaoqiang.util.XQSysUtil"
+local misc = XQSysUtil.getMiscHardwareInfo()
+local bbsUrl = misc.bbs
+local xqCountryCode = require "xiaoqiang.XQCountryCode"
+local ccode = xqCountryCode.getBDataCountryCode()
+%>
+<div id="ft">
+    <p>&copy; 2020 <%:小米路由器%><p>
+</div>

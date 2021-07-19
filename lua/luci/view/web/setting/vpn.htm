@@ -1,0 +1,620 @@
+<%
+--[[
+    Info    PPTP L2TP
+]]--
+local ver = require("xiaoqiang.XQVersion").webVersion
+%>
+<%include("web/inc/head")%>
+<title><%:小米路由器%></title>
+<meta name="viewport" content="width=1200">
+<link href="<%=resource%>/web/css/bc.css?v=<%=ver%>" rel="stylesheet">
+<link href="<%=resource%>/web/css/vpn.css?v=<%=ver%>" rel="stylesheet">
+</head>
+<body>
+<div id="doc">
+    <%include("web/inc/header")%>
+    <div id="bd">
+        <div class="mod-set mod-vpn">
+            <div class="hd">
+                <div class="help">
+                    <span class="ico"></span>
+                    <span class="arrow-wrap" id="helpArrow">
+                        <span class="arrow1"></span>
+                        <span class="arrow2"></span>
+                    </span>
+                </div>
+                <h3><%:VPN%></h3>
+            </div>
+            <div class="bd">
+                <div class="section section-help" id="helpSection">
+                    <div class="help-cont">
+                        <span class="help-close"></span>
+                        <div class="what">
+                            <h3><%:什么是VPN%></h3>
+                            <p><%:VPN属于远程访问技术，应用举例：出差员工在外地通过VPN服务访问企业内部网络。%></p>
+                            <p><%:PPTP（Point to Point Tunneling Protocol）和L2TP（Layer 2 Tunneling Protocol）为两种互联网隧道协议，都属于VPN（Virtual Private Network）虚拟专用网络的不同协议分类方式。%></p>
+                        </div>
+                        <div class="qa">
+                            <h3><%:常见问题%></h3>
+                            <h4><%:如何设置VPN%></h4>
+                            <p><%:1.首先需要在VPN服务商官网上注册账号，获得用户名、密码、服务器地址、协议类型等信息。%></p>
+                            <p><%:2.将信息添加到服务中，并启用该VPN服务%></p>
+                            <h4><%:注意事项%>:</h4>
+                            <p><%:1.VPN用户名、密码、服务器地址、协议类型等信息需要向VPN服务商获取。%></p>
+                            <p><%:2.如果不清楚VPN协议类型，可以选择自动。%></p>
+                            <p><%:3.服务器地址可以是域名或IP地址，具体由服务商提供。%></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="section-list">
+                    <h4><%:VPN 服务列表: %></h4>
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th width="160"><%:名称%></th>
+                                <th><%:协议类型%></th>
+                                <th><%:服务器地址%></th>
+                                <th><%:用户名%></th>
+                                <th><%:状态%></th>
+                                <th class="center" width="242"><%:操作%></th>
+                            </tr>
+                        </thead>
+                        <tbody id="vpnlist">
+                            <tr>
+                                <td class="center" colspan="6"><%:查询中...%></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div class="btns">
+                        <a href="#" class="btn btn-dft btn-l" id="btnadditem"><span><%:添加服务%></span></a>
+                    </div>
+                </div>
+                <div class="section-set" style="display:none">
+                    <span class="k"><%:开机自动连接%></span>
+                    <a href="#" id="autostart" class="btn-switch btn-switch-off"></a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <%include("web/inc/footer")%>
+</div>
+<%include("web/inc/g.js")%>
+<script type="tmpl/html" id="tpladdvpn">
+<form action="<%=luci.dispatcher.build_url("api", "xqsystem", "set_vpn")%>" class="form form-vpnadd" method="post" name="vpn" id="vpn">
+    {if($id && $id !='')}
+        <input type="hidden" name="id" value="{$id}">
+    {/if}
+    <div class="form-item">
+        <label class="k"><%:名称%></label>
+        <span class="v"><input type="text" name="oname" reqMsg = "<%:名称%>" class="ipt-text" value="{$oname}"></span>
+        <em class="t"></em>
+    </div>
+    <div class="form-item-select">
+        <label class="k"><%:协议类型%></label>
+        <span class="v">
+            <select name="proto" class="beautify vpntype">
+                <option value="pptp" {if($proto == 'pptp')}selected="selected"{/if}>PPTP</option>
+                <option value="l2tp" {if($proto == 'l2tp')}selected="selected"{/if}>L2TP</option>
+            </select>
+        </span>
+        <em class="t"></em>
+    </div>
+    <div class="form-item">
+        <label class="k"><%:服务器%></label>
+        <span class="v"><input type="text" name="server" reqMsg = "<%:服务器%>" class="ipt-text" value="{$server}"></span>
+        <em class="t"></em>
+    </div>
+    <div class="form-item">
+        <label class="k"><%:用户名%></label>
+        <span class="v"><input type="text" name="username" reqMsg = "<%:用户名%>" class="ipt-text" value="{$username}"></span>
+        <em class="t"></em>
+    </div>
+    <div class="form-item">
+        <label class="k"><%:密码%></label>
+        <span class="v"><input type="password" name="password" reqMsg = "<%:密码%>" class="ipt-text" data-type="password" value="{$password}"></span>
+        <em class="t"></em>
+    </div>
+    <div class="item-contral">
+        <button type="submit" class="btn btn-primary btn-l" id="btnSave"><span><%:保存%></span></button>
+    </div>
+</form>
+</script>
+<script type="tmpl/html" id="tplvpnlist">
+{if($vpnlist.length > 0)}
+{for(var i=0; i<$vpnlist.length; i++)}
+<tr id="{$vpnlist[i].id}" class="{if($vpnlist[i].iscurrent == 1)}conn-st-5{else}conn-st-3{/if}">
+    <td>{$vpnlist[i].oname}</td>
+    <td>{$vpnlist[i].proto}</td>
+    <td>{$vpnlist[i].server}</td>
+    <td>{$vpnlist[i].username}</td>
+    <td class="conn-st-text">
+        <span class="vpn-status">
+            <span class="val">
+            {if($vpnlist[i].iscurrent == 1)}
+                <%:查询中...%>
+            {else}
+                <%:未启用%>
+            {/if}
+            </span>
+            <span class="uptime"></span>
+        </span>
+    </td>
+    <td>
+        <div class="conn-opt conn-opt-1">
+            <button class="btn btn-primary btn-block btn-conn-stop" data-id={$vpnlist[i].id}><span><%:断开连接%></span></button>
+        </div>
+        <div class="conn-opt conn-opt-2">
+            <button class="btn btn-primary btn-block btn-conn-cancel" data-id={$vpnlist[i].id}><span><%:取消连接%></span></button>
+        </div>
+        <div class="conn-opt conn-opt-3">
+            <button class="l btn btn-dft btn-conn-start" data-id={$vpnlist[i].id}><span><%:连接%></span></button>
+            <button class="l btn btn-dft btn-edit" data-id={$vpnlist[i].id}><span><%:编辑%></span></button>
+            <button class="r btn btn-dft btn-del" data-id={$vpnlist[i].id}><span><%:删除%></span></button>
+        </div>
+        <div class="conn-opt conn-opt-4">
+            <button class="l btn btn-dft btn-conn-start" data-id={$vpnlist[i].id}><span><%:重连%></span></button>
+            <button class="l btn btn-dft btn-edit" data-id={$vpnlist[i].id}><span><%:编辑%></span></button>
+            <button class="r btn btn-dft btn-del" data-id={$vpnlist[i].id}><span><%:删除%></span></button>
+        </div>
+    </td>
+</tr>
+{/for}
+{else}
+<tr>
+    <td colspan="6" class="center"><%:没有设置信息%></td>
+</tr>
+{/if}
+</script>
+<script type="tmpl/html" id="tmplErrtip">
+<div class="status-err-tips">
+    <span class="arrow"></span>
+    {$cont}
+</div>
+</script>
+
+
+<script type="tmpl/html" id="tmplAddList">
+    <div class="dialog-listadd-form-wrap">
+        <form  class="form" id="listAdd">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th><%:设备名称%></th>
+                        <th width="90"><%:状态%></th>
+                        <th><%:MAC地址%></th>
+                        <th width="30"><%:操作%></th>
+                    </tr>
+                </thead>
+                <tbody id="dialogdeviceslist">
+                    <tr>
+                        <td colspan="4"><%:正在查询中...%></td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="form-contral">
+                <button type="submit" class="btn btn-primary" id="listAddSubmit"><span><%:确定%></span>
+                </button>
+                <button type="submit" class="btn btn-dft" id="listAddClose"><span><%:取消%></span>
+                </button>
+            </div>
+        </form>
+    </div>
+</script>
+<script type="tmpl/html" id="tmplDevice">
+    <tr>
+        <td>{$name}</td>
+        <td>{$status}</td>
+        <td>{$mac}</td>
+        <td>
+            <input class="deviceinput" type="checkbox" name="nowmac" value="{$mac}" />
+        </td>
+    </tr>
+</script>
+<script type="tmpl/html" id="tmplAddmac">
+    <div class="dialog-add-bymac">
+        <form class="form" name="addbymac" id="addbymac">
+            <p><%:请输入设备的MAC地址%></p>
+            <div class="form-item">
+                <label class="k">
+                    <%:MAC地址%>
+                </label>
+                <span class="v">
+                    <input type="text" id="macaddr" name="addr" class="ipt-text" datatype="macaddr" reqMsg="<%:MAC地址%>" />
+                </span>
+                <em class="t"></em>
+            </div>
+            <div class="form-contral">
+                <button type="submit" class="btn btn-primary" id="macAddSubmit"><span><%:确定%></span>
+                </button>
+                <button type="submit" class="btn btn-dft" id="macAddClose"><span><%:取消%></span>
+                </button>
+            </div>
+        </form>
+    </div>
+</script>
+<script type="tmpl/html" id="tmplAddurl">
+    <div class="dialog-add-bymac">
+        <form class="form" name="addbyurl" id="addbyurl">
+            <p><%:请输入地址%></p>
+            <div class="form-item">
+                <label class="k">
+                    <%:地址%>
+                </label>
+                <span class="v">
+                    <input type="text" id="urladdr" name="urladdr" class="ipt-text" reqMsg="<%:地址%>" />
+                </span>
+                <em class="t"></em>
+            </div>
+            <div class="form-contral">
+                <button type="submit" class="btn btn-primary" id="urlAddSubmit"><span><%:确定%></span>
+                </button>
+                <button type="submit" class="btn btn-dft" id="urlAddClose"><span><%:取消%></span>
+                </button>
+            </div>
+        </form>
+    </div>
+</script>
+<script>
+var modelVpn = (function(){
+    var timer = null,
+        dlgform,
+        currentId,
+        ajaxdone = true;
+    var vpnConnectStatus = -1;
+    function vpnInfo(){
+        var xhr = $.getJSON('<%=luci.dispatcher.build_url("api", "xqsystem", "vpn")%>', {}, function(rsp){
+            if (rsp.code == 0) {
+                var tpl = $('#tplvpnlist').html(),
+                    tpldata = [],
+                    list = rsp.list,
+                    current = rsp.current,
+                    iscurrent = 0;
+
+                currentId = current.id;
+                $('.section-set').hide();
+
+                if (list.length > 0) {
+                    for (var i = 0; i < list.length; i++) {
+                        if ( list[i].id == current.id) {
+                             iscurrent = 1;
+                             $('.section-set').show();
+                             if ( current.auto == '1' ) {
+                                 $('#autostart')[0].className = 'btn-switch btn-switch-on';
+                             } else {
+                                 $('#autostart')[0].className = 'btn-switch btn-switch-off';
+                             }
+                         } else {
+                             iscurrent = 0;
+                         }
+                        var item = {
+                            id: list[i].id,
+                            proto: list[i].proto.toUpperCase(),
+                            server: list[i].server,
+                            username: StringH.encode4HtmlValue(list[i].username),
+                            oname: StringH.encode4HtmlValue(list[i].oname),
+                            id: list[i].id,
+                            iscurrent: iscurrent
+                        }
+                        tpldata.push(item);
+                    }
+                }
+                $('#vpnlist').html(tpl.tmpl({vpnlist: tpldata}) );
+            }
+        });
+        return xhr;
+    }
+
+    function vpnStatus(){
+        ajaxdone = false;
+        var xhr = $.getJSON('<%=luci.dispatcher.build_url("api", "xqsystem", "vpn_status")%>', {}, function(rsp){
+            ajaxdone = true;
+            if (rsp.code == 0) {
+                var status = rsp.status,
+                    uptime = '',
+                    statusCode = 2,
+                    trstatus,
+                    statusText;
+                vpnConnectStatus = rsp.status;
+                // 0 connected 1 connecting 2 failed 3 close
+                switch(status){
+                    case 0:
+                        statusText = '<%:已连接%>';
+                        trstatus = 'conn-st-1';
+                        uptime = secondToDate(rsp.uptime);
+                        break;
+                    case 1:
+                        trstatus = 'conn-st-2';
+                        statusText = '<%:正在拨号...%>';
+                        break;
+                    case 2:
+                        statusText = '<%:连接失败%>';
+                        trstatus = 'conn-st-4';
+                        break;
+                    case 3:
+                        statusText = '<%:已断开%>';
+                        trstatus = 'conn-st-3';
+                        break;
+                    case 4:
+                        statusText = '<%:未启用%>';
+                        trstatus = 'conn-st-3';
+                        break;
+                    default:
+                        statusText = '<%:连接异常%>';
+                        trstatus = 'conn-st-4';
+                        break;
+                }
+
+                if (rsp.errcode) {
+                    trstatus = 'conn-st-4';
+                    // statusText = rsp.errmsg;
+                    statusText = '<span class="errmsg-wrap" data-error="' + rsp.errmsg + '"><%:连接失败%></span>';
+                    uptime = '';
+                };
+                var el = document.getElementById(currentId);
+                if ( el ) {
+                    el.className = trstatus;
+                    $('.vpn-status .val', el).html(statusText);
+                    $('.vpn-status .uptime', el).html(uptime);
+                }
+            }
+        });
+        return xhr;
+    };
+    function listenStatus(){
+        timer = window.setInterval(function(){
+            if ( ajaxdone ) {
+                vpnStatus();
+            }
+        },5000);
+    };
+    function stopListenStatus(){
+        window.clearInterval(timer);
+    }
+    function vpnSwitch(){
+        $('body').delegate('.btn-conn-start', 'click', function(e){
+            e.preventDefault();
+            var root = $(this).parents('tr'),
+                id = $(this).attr('data-id');
+            // root[0].className = 'conn-st-2';
+            // root.find('.vpn-status .uptime').html('');
+            // root.find('.vpn-status .val').html('<%:正在拨号...%>');
+            stopListenStatus();
+            $.pub( 'loading:start' );
+            $.getJSON('<%=luci.dispatcher.build_url("api", "xqsystem", "vpn_switch")%>', {'conn': 1, id: id}, function(rsp){
+                if (rsp.code == 0) {
+                    currentId = id;
+                    vpnInfo().always( function(){
+                        setTimeout( function(){
+                            vpnStatus().always( function(){
+                                listenStatus();
+                                $.pub( 'loading:stop' );
+                            } );
+                        }, 4000 );
+                    } );
+                } else {
+                    $.pub( 'loading:stop' );
+                    $.alert( rsp.msg );
+                    location.reload( 1 );
+                }
+
+            });
+        });
+
+        $('body').delegate('.btn-conn-stop, .btn-conn-cancel', 'click', function(e){
+            e.preventDefault();
+            var root = $(this).parents('tr'),
+                id = $(this).attr('data-id');
+            // root[0].className = 'conn-st-5';
+            // root.find('.vpn-status .uptime').html('');
+            // root.find('.vpn-status .val').html('<%:正在断开...%>');
+            stopListenStatus();
+            $.pub( 'loading:start' );
+            $.getJSON('<%=luci.dispatcher.build_url("api", "xqsystem", "vpn_switch")%>', {'conn': 0, id: id}, function(rsp){
+                if (rsp.code == 0) {
+                    currentId = id;
+                    setTimeout( function(){
+                        vpnStatus().always( function(){
+                            listenStatus();
+                            $.pub( 'loading:stop' );
+                        } );
+                    }, 1000 );
+                } else {
+                    $.pub( 'loading:stop' );
+                    $.alert( rsp.msg );
+                    location.reload( 1 );
+                }
+
+            });
+        });
+
+        $('body').delegate('.btn-edit', 'click', function( e ){
+            e.preventDefault();
+            var that = this,
+                $this = $(that),
+                id = $this.attr('data-id'),
+                tpl = $('#tpladdvpn').html(),
+                tpldata = {
+                    oname: '',
+                    password: '',
+                    server: '',
+                    username: '',
+                    proto: 'pptp'
+                };
+            $.pub( 'loading:start' );
+            $.getJSON('<%=luci.dispatcher.build_url("api", "xqsystem", "vpn")%>', {}, function(rsp){
+                if ( rsp.code == 0 ) {
+                    var list = rsp.list;
+                    if ( list.length > 0 ) {
+                        for (var i = 0; i < list.length; i++) {
+                             if ( list[i].id == id) {
+                                tpldata.proto = list[i].proto;
+                                tpldata.oname = StringH.encode4HtmlValue(list[i].oname);
+                                tpldata.password = list[i].password;
+                                tpldata.server = list[i].server;
+                                tpldata.username = StringH.encode4HtmlValue(list[i].username);
+                                tpldata.password = StringH.encode4HtmlValue(list[i].password);
+                                tpldata.id = list[i].id;
+                            }
+                        }
+                    }
+                    console.log( tpldata );
+                    dlgform = $.dialog({
+                        title: '<%:添加服务%>',
+                        width: 600,
+                        content: tpl.tmpl(tpldata),
+                        lock: true
+                    });
+                    setTimeout( function(){
+                        $.selectBeautify();
+                        $.formInit();
+                    }, 100 );
+                }
+                $.pub( 'loading:stop' );
+            });
+        });
+
+        $( 'body' ).delegate( '.btn-del', 'click', function( e ){
+            e.preventDefault();
+            var that = this,
+                $this = $(that),
+                id = $this.attr('data-id'),
+                ok = function(){
+                    $.pub( 'loading:start' );
+                    $.getJSON('<%=luci.dispatcher.build_url("api","xqsystem","del_vpn")%>', {id: id}, function( rsp ){
+                        if ( rsp.code == 0 ) {
+                            location.reload( 1 );
+                        } else {
+                            $.alert( rsp.msg );
+                        }
+                        $.pub( 'loading:stop' );
+                    });
+                };
+            $.confirm( '<%:你确定要删除此项吗？%>', ok );
+        });
+
+         $('#autostart').on('click', function( e ){
+             e.preventDefault();
+             var that = this,
+                 $this = $(that),
+                 ison = $this.hasClass('btn-switch-on'),
+                 data = {auto: 1},
+                 classname = 'btn-switch btn-switch-on';
+             if ( ison ) {
+                 data = {auto: 0};
+                 classname = 'btn-switch btn-switch-off';
+             }
+             $.getJSON('<%=luci.dispatcher.build_url("api","xqsystem","set_vpnauto")%>', data, function( rsp ){
+                 that.className = classname;
+             });
+         });
+    }
+
+    function vpnset(){
+        $('#btnadditem').on('click', function(e){
+            e.preventDefault();
+            var tpl = $('#tpladdvpn').html(),
+                tpldata = {
+                    oname: '',
+                    password: '',
+                    server: '',
+                    username: '',
+                    proto: 'pptp'
+                };
+            dlgform = $.dialog({
+                title: '<%:添加服务%>',
+                width: 600,
+                content: tpl.tmpl(tpldata),
+                lock: true
+            });
+            setTimeout( function(){
+                $.selectBeautify();
+                $.formInit();
+            }, 100 );
+        });
+
+        $('body').delegate('#vpn', 'submit', function(e){
+            e.preventDefault();
+            var url = this.action,
+                method = this.method,
+                param = $(this).serialize(),
+                formName = this.name,
+                validator = Valid.checkAll( this );
+            if (validator) {
+                $.pub( 'wait', {id: '#btnSave'});
+                $.ajax({
+                    url: url,
+                    type: method,
+                    data: param,
+                    dataType: 'json',
+                    success: function(rsp){
+                        var msg;
+                        if (rsp.code == 0) {
+                            dlgform.close();
+                            location.reload( 1 );
+                        }else{
+                            $.alert(rsp.msg);
+                        }
+                        $.pub( 'done', {id: '#btnSave'});
+                    }
+                });
+            }
+        });
+
+    }
+    function displayHelp( flag ){
+        var arrow = $('#helpArrow');
+        var section = $('#helpSection');
+        if( flag == 'block'){
+            arrow.show();
+            section.show();
+        }else{
+            arrow.hide();
+            section.hide();
+        }
+    }
+    function showErrMsg( ele ){
+        var cont = $(ele).attr('data-error');
+        var tpl = $('#tmplErrtip').html();
+        var html = StringH.tmpl(tpl, {
+            cont: cont
+        });
+        $('.status-err-tips').remove();
+        $('body').append(html);
+        $('.status-err-tips').css({
+            left: $(ele).offset().left - $('.status-err-tips').width() / 2 + 20,
+            top: $(ele).offset().top + 28
+        });
+        $('body').click(function(e){
+            if( !$(e.target).is(".errmsg-wrap") ){
+                $('.status-err-tips').remove();
+            }
+        });
+    }
+
+    function addEvent(){
+        $('.help .ico').on('click', function(){
+            displayHelp( 'block' );
+        });
+        $('.help-close').on('click', function(){
+            displayHelp( 'none' );
+        });
+        $('body').delegate('#vpnlist .errmsg-wrap', 'click', function(){
+            showErrMsg( this )
+        });
+    }
+    return {
+        init : function(){
+            vpnInfo();
+            vpnset();
+            vpnSwitch();
+            listenStatus();
+            addEvent();
+        }
+    }
+}());
+$(function(){
+    modelVpn.init();
+});
+</script>
+</body>
+</html>

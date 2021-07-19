@@ -15,7 +15,7 @@ all: $(TARGETS)
 	rm -f $@
 	-rm -rf ubifs-root/$*.bin
 	ubireader_extract_images -w orig-firmwares/$*.bin
-	fakeroot -- ./repack-squashfs.sh ubifs-root/$*.bin/img-*_vol-ubi_rootfs.ubifs cuongnguyen.online 1234567890
+	fakeroot -- ./repack-squashfs.sh ubifs-root/$*.bin/img-*_vol-ubi_rootfs.ubifs cuong.ga 1234567890
 	./ubinize.sh ubifs-root/$*.bin/img-*_vol-kernel.ubifs ubifs-root/$*.bin/img-*_vol-ubi_rootfs.ubifs.new
 	zip -9 $@ r3600-raw-img.bin
 	rm -f r3600-raw-img.bin
@@ -24,7 +24,7 @@ all: $(TARGETS)
 	rm -f $@
 	-rm -rf ubifs-root/$*.bin
 	ubireader_extract_images -w orig-firmwares/$*.bin
-	fakeroot -- ./repack-squashfs-mi.sh ubifs-root/$*.bin/img-*_vol-ubi_rootfs.ubifs cuongnguyen.online 1234567890
+	fakeroot -- ./repack-squashfs-mi.sh ubifs-root/$*.bin/img-*_vol-ubi_rootfs.ubifs cuong.ga 1234567890
 	./ubinize.sh ubifs-root/$*.bin/img-*_vol-kernel.ubifs ubifs-root/$*.bin/img-*_vol-ubi_rootfs.ubifs.new
 	zip -9 $@ r3600-raw-img.bin
 	rm -f r3600-raw-img.bin
@@ -33,7 +33,7 @@ all: $(TARGETS)
 	rm -f $@
 	-rm -rf ubifs-root/$*.bin
 	ubireader_extract_images -w orig-firmwares/$*.bin
-	fakeroot -- ./repack-squashfs-mi-opt.sh ubifs-root/$*.bin/img-*_vol-ubi_rootfs.ubifs cuongnguyen.online 1234567890
+	fakeroot -- ./repack-squashfs-mi-opt.sh ubifs-root/$*.bin/img-*_vol-ubi_rootfs.ubifs cuong.ga 1234567890
 	./ubinize.sh ubifs-root/$*.bin/img-*_vol-kernel.ubifs ubifs-root/$*.bin/img-*_vol-ubi_rootfs.ubifs.new
 	zip -9 $@ r3600-raw-img.bin
 	rm -f r3600-raw-img.bin
@@ -42,7 +42,7 @@ all: $(TARGETS)
 	rm -f $@
 	-rm -rf ubifs-root/$*.bin
 	ubireader_extract_images -w orig-firmwares/$*.bin
-	fakeroot -- ./repack-squashfs-opt.sh ubifs-root/$*.bin/img-*_vol-ubi_rootfs.ubifs cuongnguyen.online 1234567890
+	fakeroot -- ./repack-squashfs-opt.sh ubifs-root/$*.bin/img-*_vol-ubi_rootfs.ubifs cuong.ga 1234567890
 	./ubinize.sh ubifs-root/$*.bin/img-*_vol-kernel.ubifs ubifs-root/$*.bin/img-*_vol-ubi_rootfs.ubifs.new
 	zip -9 $@ r3600-raw-img.bin
 	rm -f r3600-raw-img.bin

@@ -1,0 +1,1557 @@
+<%
+-- 系统信息js
+local XQSysUtil = require "xiaoqiang.util.XQSysUtil"
+local XQBackup = require("xiaoqiang.module.XQBackup")
+local romVersion = XQSysUtil.getRomVersion()
+local uploadUrl = luci.dispatcher.build_url("api", "xqsystem","upload_rom")
+local backupKeys = XQBackup.defaultKeys()
+local hardware = string.lower( XQSysUtil.getHardware() )
+local backupKeys = XQBackup.defaultKeys()
+
+local XQFunction = require("xiaoqiang.common.XQFunction")
+local netmod = 0
+local netmod = XQFunction.getnetmode()
+--2 有线中继
+--1 无线中继
+--4 mesh主设备  whc_cap
+--3 mesh从设备  whc_re
+--0 router
+
+local isMesh = (netmod == 3 or netmod == 4) and 'true'  or  'false'
+%>
+
+<script type="tmpl/text" id="uploadform">
+<p><%:路由器正常工作情况下建议使用系统升级检测进行升级，在当系统无法升级或需要降级到前一版本时使用手动上传rom包进行升级。%></p>
+<div class="uploadprogress" id="uploadprogress" style="display:none;">
+    <div class="progress-text">0%</div>
+    <div class="progress"><div class="value"></div></div>
+</div>
+<div class="uploadloading" id="uploadloading" style="display:none;">
+    <div class="loading-bar"></div>
+</div>
+<form class="form form-upload" name="uploadForm" id="uploadForm" method="post" enctype="multipart/form-data" >
+    <div class="item">
+        <label class="k"><%:请选择固件:%></label>
+        <span class="v">
+            <label for="image" style="position: relative;">
+                    <input type="button" id="btn" value="<%:选择文件%>" style="margin-right: 5px;"><span id="text"><%:未选择任何文件%></span>
+                    <input type="file" name="image" id="image" style="position: absolute;left: 0;top: 0;opacity: 0;">
+            </label>
+
+        </span>
+        <em class="t"></em>
+    </div>
+    <div class="item item-contral">
+        <button type="button" class="btn btn-block btn-primary-disabled" id="uploadFormBtn" disabled><span><%:开始升级%></span></button>
+    </div>
+</form>
+</script>
+
+<script type="tmpl/text" id="selectBackupList">
+<div class="dialog-select-list">
+    <p class="gray"><%:可选备份%></p>
+    <ul>
+    <%for k,v in pairs(backupKeys) do%>
+        <li><label><input type="checkbox" name="item" data-key="<%=k%>" checked="true" /> <span class="name"><%=v%></span></label></li>
+    <%end%>
+    </ul>
+    <a href="#" id="btnstartbackup" class="btn btn-primary btn-l"><span><%:开始备份%></span></a>
+</div>
+</script>
+<script type="tmpl/text" id="backupFail">
+<div class="dialog-backup-tips">
+    <img src="<%=resource%>/web/img/ico_warn.png?v=<%=ver%>">
+    <p ><%:由于%> <span></span> <%:原因，路由器设置备份失败！%></p>
+    <a href="#" class="btn btn-primary btn-l"><span><%:重试%></span></a>
+</div>
+</script>
+<script type="tmpl/text" id="configUpload">
+<div class="config-upload">
+    <img src="<%=resource%>/web/img/ico_back.png?v=<%=ver%>">
+    <form class="form form-upload" name="configuploadForm" id="configuploadForm" method="post" enctype="multipart/form-data" >
+    <div class="item">
+        <label class="k"><%:请选择备份文件%></label>
+        <span class="v">
+
+            <label for="configimage" style="position: relative;">
+                    <input type="button" id="btn" value="<%:选择文件%>" style="margin-right: 5px;"><span id="text"><%:未选择任何文件%></span>
+                    <input type="file" name="image" id="configimage" style="position: absolute;left: 0;top: 0;opacity: 0;">
+            </label>
+
+        </span>
+        <em class="t"></em>
+    </div>
+    <div class="item item-contral">
+        <button type="button" class="btn btn-block btn-primary-disabled" id="configuploadFormBtn" disabled><span><%:开始恢复%></span></button>
+    </div>
+    </form>
+</div>
+</script>
+<script type="tmpl/text" id="selectRestoreList">
+<div class="dialog-select-list">
+    <p class="gray"><%:可选恢复的项目%></p>
+    <ul>
+
+    </ul>
+    <a href="#" id="btnstartrestore" class="btn btn-primary btn-l"><span><%:恢复%></span></a>
+</div>
+</script>
+<script type="tmpl/text" id="restoresucc">
+<div class="dialog-backup-tips">
+    <img src="<%=resource%>/web/img/ico_ok.png?v=<%=ver%>">
+    <p ><%:路由器设置恢复成功，重启路由器即可生效！%> </p>
+    <a href="#" class="btn btn-primary btn-l"><span><%:重启路由器%></span></a>
+</div>
+</script>
+<script type="tmpl/text" id="restorefail">
+<div class="dialog-backup-tips">
+    <img src="<%=resource%>/web/img/ico_warn.png?v=<%=ver%>">
+    <p ><%:由于%> <span></span> <%:原因，路由器设置备份失败！%></p>
+    <a href="#" class="btn btn-primary btn-l"><span><%:重试%></span></a>
+</div>
+</script>
+<script type="tmpl/text" id="resettip">
+<div class="dialog-reset-tips">
+    <img src="<%=resource%>/web/img/ico_warn.png?v=<%=ver%>">
+    <p ><%:恢复出厂设置操作会抹掉当前路由器的所有设置，建议您先进行配置备份再恢复出厂设置。%><br>
+    </p>
+    <div class="btns">
+    <%if netmod == 0 then%>
+        <a href="#" id="toconfigbackup" class="btn btn-primary"><span><%:备份路由器设置%></span></a>
+        <%end%>
+        <a href="#" id="toresetwindow" class="btn btn-primary"><span><%:直接恢复出厂设置%></span></a>
+    </div>
+</div>
+</script>
+<script type="tmpl/text" id="resettip_d01">
+<div class="dialog-reset-tips">
+    <img src="<%=resource%>/web/img/ico_warn.png?v=<%=ver%>">
+    <p class="text-left">
+    <span><%:1.是否确认恢复出厂设置并让小米路由器回到初始状态？%></span>
+    <span><%:2.恢复出厂设置后，子Mesh节点会失去连接，Mesh网络将不可用%></span>
+    </p>
+    <div class="btns">
+        <a href="#" id="toresetwindow" class="btn btn-primary btn-m"><span><%:直接恢复出厂设置%></span></a>
+    </div>
+</div>
+</script>
+<script type="tmpl/text" id="tpltimezone">
+<div class="dialog-timezone" id="timezone_dummy">
+    <div class="clearfix">
+        <div class="form-item-select">
+            <label class="k"></label>
+            <span class="v"><select name="timezone" id="timezone" class="beautify"></select></span>
+        </div>
+    </div>
+
+    <div>
+        <button type="button" id="btnTimezoneSubmit" class="btn btn-primary btn-l"><span><%:确定%></span></button>
+    </div>
+</div>
+</script>
+<script type="tmpl/text" id="tpldatetime">
+<div class="dialog-datetime">
+    <div>
+        <span><select name="year" id="year" style="width:80px;"></select> <%:年%></span>
+        <span><select name="month" id="month" style="width:80px;"></select> <%:月%></span>
+        <span><select name="day" id="day" style="width:80px;"></select> <%:日%></span>
+    </div>
+    <div>
+        <span><select name="hour" id="hour" style="width:80px;"></select> <%:时%></span>
+        <span><select name="minute" id="minute" style="width:80px;"></select> <%:分%></span>
+        <span><select name="second" id="second" style="width:80px;"></select> <%:秒%></span>
+    </div>
+    <p><button type="button" id="btnGetNowDate" class="btn btn-dft btn-l"><span><%:当前时间%></span></button></p>
+    <p><button type="button" id="btnDatetimeSubmit" class="btn btn-primary btn-l"><span><%:确定%></span></button></p>
+</div>
+</script>
+<script>
+// upload method
+(function( $ ){
+    $.fn.ajaxUpload = function(options){
+
+        var that = this,
+            uploadbyiframe = function( options ){
+                var d = new Date().getTime(),
+                    iframeName = 'iframeUpload' + d,
+                    iframeContents,
+                    iframe = $('<iframe name="'+iframeName+'" id="'+iframeName+'" style="display: none" />');
+                $("body").append(iframe);
+
+                var form = $(that);
+                form.attr("action", options.url);
+                form.attr("method", "post");
+                form.attr("enctype", "multipart/form-data");
+                form.attr("encoding", "multipart/form-data");
+                form.attr("target", iframeName);
+                form.submit();
+
+                form.hide();
+                $('#uploadloading').show();
+                $(document.getElementById(iframeName))
+                    .load(function () {
+                        try{
+                            iframeContents = document.getElementById(iframeName).contentWindow.document.body.innerHTML;
+                            var rsp = iframeContents.match(/^\{.*?\}/);
+                            if ( rsp ) {
+                                rsp = $.parseJSON(rsp[0]);
+                                options.success(rsp);
+                            } else {
+                                options.error();
+                                form.show();
+                                $('#uploadloading').hide();
+                            }
+                        } catch( e ) {
+                            options.error();
+                            form.show();
+                            $('#uploadloading').hide();
+                        }
+                    })
+                    .error(function(){
+                        options.error();
+                        form.show();
+                        $('#uploadloading').hide();
+                    });
+                return false;
+
+            },
+            uploadbyajax = function( options ) {
+                var form = $(that);
+                var formData = new FormData( form[0] );
+                var progressBar = form.find( '.progress' );
+                var progressBar = $('#uploadprogress');
+                var progressBarVal = progressBar.find( '.progress .value' );
+                var progressBarText = progressBar.find( '.progress-text' );
+
+                var xhr = new XMLHttpRequest();
+                xhr.open('POST', options.url, true);
+                xhr.onload = function(e) {
+                    if ( xhr.status === 200) {
+                        var rsp = $.parseJSON(e.target.responseText);
+                        options.success(rsp);
+                    } else {
+                        options.error();
+                        form.show();
+                        progressBar.hide();
+                    }
+                };
+                xhr.onerror = function(e) {
+                    options.error();
+                    form.show();
+                    progressBar.hide();
+                };
+                xhr.upload.onprogress = function ( e ) {
+                    console.log( e, progressBar );
+                    if (e.lengthComputable) {
+                        form.hide();
+                        progressBar.show();
+                        var pct = (e.loaded / e.total) * 100;
+                        progressBarVal.css({
+                            width: pct + '%'
+                        });
+                        progressBarText.text( parseInt(pct, 10) + '%' );
+                    }
+                }
+                xhr.send(formData);  // multipart/form-data
+
+            };
+
+        if ( window.FormData ) {
+            uploadbyajax( options );
+        } else {
+            uploadbyiframe( options );
+        }
+    };
+})(jQuery);
+//check ota
+var hardware = '<%=hardware%>';
+var isMesh = <%=isMesh%>;
+
+$.sub( 'upgrade:check', function() {
+    var requestData = {},
+        requestURL = '<%=luci.dispatcher.build_url("api","xqsystem","check_rom_update")%>',
+        tplChecking = '<%:当前版本{$romVersion}，{$ret}%>',
+        tplHasnew = '<%:发现新版本,升级包大小为{$size}，请立即升级。%>';
+
+    $( '#upgradeinfo' ).html( tplChecking.tmpl( {
+        romVersion: '<em class="em"><%=romVersion%></em>',
+        ret: '<%:正在检测更新，请稍候...%>'
+    } ) );
+
+    $.getJSON( requestURL, requestData, function(rsp) {
+        if(rsp.code == 0){
+            mainMeshVersion = rsp.version;
+
+            if(isMesh){
+            //topo
+                    $.getJSON( requestURL, {}, function(rsp) {
+                        if(rsp.code == 0){
+                            //console.log(2222)
+                            // debugger;
+                            if(rsp.graph){
+                                if(rsp.graph.mode==0){
+                                    $('#blue').html('当前路由器_'+rsp.graph.locale+'(网关)');
+                                }else{
+                                    $('#blue').html('当前路由器_'+rsp.graph.locale);
+                                }
+                            }
+
+                            
+
+                            // var meshlist = rsp.graph.leafs;
+                            //
+                            // meshlist.forEach(function(item,i){
+                            //     listHtml+='<div class="one div'+(i+2)+' clearfix"><div class="left"><img class="icon-d01" src="/xiaoqiang/web/img/icons/router_d01_101_on.png"><img class="icon-internet" src="/xiaoqiang/web/img/icons/icon_internet_on.png"></div><div class="left left-item"><p id="blue">'+item.name+'_'+item.locale;
+                            //
+                            //     if(cpr_version_latest( mainMeshVersion ,item.version)){
+                            //         listHtml +='</p><p style="margin-bottom:15px">当前版本<span class="blue">'+item.version+'</span>，你的版本是最新的，无需升级。</p><a href="http://'+item.ip+'" class="btnUpload btn btn-dft btn-l right"><span><%:手动升级%></span></a></div></div>';
+                            //     }else{
+                            //         listHtml += '</p><p style="margin-bottom:15px">当前版本<span class="blue">'+item.version+'</span>，发现新版本，请立即升级。</p><a href="http://'+item.ip+'" class="btnUpgread btn btn-primary btn-l left"><span><%:立即升级%></span></a></div></div>';
+                            //     }
+                            // });
+                            // $("#meshUpgrade").append(listHtml);
+
+                        }
+                    });
+                }
+
+            if( rsp.needUpdate == 1 ){
+                $( '#upgradeinfo' ).html( tplHasnew.tmpl( {
+                    size: '<em class="em">' + byteFormat( rsp.fileSize ) + '</em>'
+                } ) );
+                $( '.hasnewver' ).show();
+                $( '.logs' ).show();
+            } else {
+                $( '#upgradeinfo' ).html( tplChecking.tmpl( {
+                    romVersion: '<em class="em"><%=romVersion%></em>',
+                    ret: '<%:你的版本是最新的，无需升级。%>'
+                } ) );
+                $(".hasnewver").hide();
+                if(isMesh){
+                    $('.div1 .btnUpgread').remove()
+                }
+            }
+
+            // if ( rsp.changeLog && rsp.changeLog != "" ){
+            //     $( '#changelog' ).html( rsp.changeLog );
+            // }
+            if (rsp.changelogUrl && rsp.changelogUrl != ""){
+                $('#changelogUrl').attr('src', rsp.changelogUrl);
+                $('#changelogUrl').load(function(){
+                    $('#changelog').show();
+                });
+            }
+        } else {
+            $( '#upgradeinfo' ).html( tplChecking.tmpl( {
+                romVersion: '<em class="em"><%=romVersion%></em>',
+                ret: '<%:检查失败，网络繁忙请刷新页面重试。%>'
+            } ) );
+        }
+    })
+});
+
+$.sub( 'upgrade:download', function() {
+
+    $( '#btnUpgread' ).on( 'click', function( e ){
+        e.preventDefault();
+        var url = $(this).attr('href');
+        var getUsb = function(){
+            return $.ajax({
+                url: '<%=luci.dispatcher.build_url("api", "xqsystem", "usbmode")%>',
+                type: 'POST',
+                dataType: 'json'
+            });
+        };
+        var dlgUpgradeConfirm = $.confirm(
+            '<div class="mod-downflash"><%:请注意：升级将会使所有已连接设备的网络中断，升级过程中请勿断开路由器电源或关闭本页面！%></div>',
+            function() {
+                window.location.href = url;
+            }
+        );
+    });
+});
+
+$.sub( 'upgrade:upload', function() {
+
+    function usbservice(enbale) {
+        if ( parseInt(G_FEATURES['hardware']['usb_deploy'], 10) == 0) {
+            return {
+                done: function( f ){ f(); }
+            };
+        }
+        var requestURL = '<%=luci.dispatcher.build_url("api", "xqsystem","usbservice")%>',
+            requestData = {'enable': enbale};
+
+        return $.ajax({
+            url: requestURL,
+            type: 'get',
+            dataType: 'json',
+            data: requestData
+        });
+    }
+
+    function uploadfile(){
+        var apiUpload = '<%=uploadUrl%>',
+            options;
+        var useInfileUpload = G_FEATURES['system']['infileupload'] === '1';
+        if ( useInfileUpload ) {
+            apiUpload = '/uploadfile' + apiUpload;
+        }
+
+        options = {
+            type: 'post',
+            dataType: "json",
+            url: apiUpload,
+            success: function( rsp ) {
+                if ( rsp.code == 0 ) {
+                    var redirectUrl = '<%=luci.dispatcher.build_url("web", "syslock")%>?flashtype=upload';
+                    if ( rsp.downgrade ) {
+                        redirectUrl += '&downgrade=1';
+                    }
+                    window.location.href = redirectUrl;
+                } else {
+                    $('#uploadprogress, #uploadloading').hide();
+                    $( '#uploadForm' ).show();
+                    $.alert( rsp.msg ).lock();
+                    usbservice(1);
+                }
+                $('#uploadFormBtn').show();
+            },
+            error: function() {
+                $.alert( '<%:升级失败，系统错误或路由硬盘已满。%>' ).lock();
+                $('#uploadFormBtn').show();
+            }
+        };
+        $('#uploadFormBtn').hide();
+        usbservice(0).done(function(){
+            $( '#uploadForm' ).ajaxUpload( options );
+        });
+    }
+
+    $( 'body' ).delegate( '#image', 'change', function( e ){
+
+        $( '#uploadFormBtn' ).on( 'enable', function( e, data ) {
+            if ( data.disabled ) {
+                this.className = 'btn btn-primary-disabled btn-block';
+                this.disabled = true;
+            } else {
+                this.className = 'btn btn-primary btn-block';
+                this.disabled = false;
+            }
+        });
+
+        var image = $( '#image' );
+        var err = $( '#uploadForm .t' );
+        var item = $( '#uploadForm .item' ).eq( 0 );
+        if ( image.val() == '' ) {
+            err.html( '<%:你未选择文件，请重新选择%>' ).show();
+            item.addClass( 'item-err' );
+            $( '#uploadFormBtn' ).trigger( 'enable', {disabled: true} );
+            return false;
+        }
+        var val = image.val();
+        var ext = val.substring( val.lastIndexOf( '.' ) + 1 )
+        var ext1 = val.substring( val.lastIndexOf( '\\' ) + 1 );
+        $("#text").html(ext1);
+
+        ext = $.trim( ext );
+        var validExt = ext == 'bin' || ext == 'BIN';
+        if ( !validExt ) {
+            err.html( '<%:文件格式错误，请重新选择%>' ).show();
+            item.addClass( 'item-err' );
+            $( '#uploadFormBtn' ).trigger( 'enable', {disabled: true} );
+            return false;
+        }
+        err.hide();
+        item.removeClass( 'item-err' );
+        $( '#uploadFormBtn' ).trigger( 'enable', {disabled: false} );
+    } );
+
+    var uploadHander = $.throttle(function( e ) {
+        e.preventDefault();
+        var uploadform = $( '#uploadform' ).html();
+        $.dialog({
+            id: 'usbcheck_upload',
+            width: 490,
+            title: '<%:手动升级%>',
+            content: '<div class="mod-uploadflash">' + uploadform + '</div>'
+        }).lock();
+    }, 1000);
+
+    $( '#btnUpload' ).on( 'click', uploadHander);
+
+    $( 'body' ).delegate( '#uploadFormBtn', 'click', function( e ){
+        e.preventDefault();
+        uploadfile();
+        return false;
+    });
+
+    $.sub( 'uploadlog', function(){
+        // upload logs
+        $( '#btnUploadlog' ).on( 'click', function( e ){
+            e.preventDefault();
+            var requestURL = '<%=luci.dispatcher.build_url("api", "xqsystem","upload_log")%>',
+                requestData = {};
+
+            $.pub( 'wait', {id: '#btnUploadlog'} );
+
+            $.getJSON( requestURL, requestData, function( rsp ){
+                if( rsp.code===0 ){
+                    $.alert( '<%:日志上传成功%>');
+                } else {
+                    $.alert( rsp.msg );
+                }
+                $.pub( 'done', {id: '#btnUploadlog'} );
+            })
+        } );
+
+        // download log
+        $( '#btnDownloadlog' ).on( 'click', function( e ){
+            e.preventDefault();
+            var requestURL = '<%=luci.dispatcher.build_url("api", "misystem","sys_log")%>',
+                requestData = {};
+
+            $.pub( 'wait', {id: '#btnDownloadlog'} );
+
+            $.getJSON( requestURL, requestData, function( rsp ){
+                if( rsp.code===0 ){
+                    window.top.location.href = '//' + rsp.path;
+                } else {
+                    $.alert( rsp.msg );
+                }
+                $.pub( 'done', {id: '#btnDownloadlog'} );
+            })
+        });
+    } );
+
+    $.sub( 'reset', function(){
+        // reset
+        $( '#btnReset' ).on( 'click', function( e ){
+            e.preventDefault();
+            // reset_window();
+            $.pub( 'reset:tip' )
+        } );
+    } );
+
+    $.sub( 'langset', function(){
+        $.i18nSet('#lang').done(function(){
+            $.selectBeautify();
+        });
+    } );
+});
+
+ var hardware = '<%=hardware%>';
+$.sub( 'reset:tip', function(){
+    if(isMesh){
+        var tipDialog = $.dialog({
+        title: '<%:提示%>',
+        content: $('#resettip_d01').html(),
+        lock: true,
+        width: 590,
+        initialize: function(){
+            $('#toconfigbackup').on('click', function(e){
+                e.preventDefault();
+                tipDialog.close();
+                $.pub( 'config:backup' );
+            });
+            $('#toresetwindow').on('click', function(e){
+                e.preventDefault();
+                tipDialog.close();
+                reset_window();
+            });
+        }
+    });
+    }else{
+        var tipDialog = $.dialog({
+        title: '<%:提示%>',
+        content: $('#resettip').html(),
+        lock: true,
+        width: 590,
+        initialize: function(){
+            $('#toconfigbackup').on('click', function(e){
+                e.preventDefault();
+                tipDialog.close();
+                $.pub( 'config:backup' );
+            });
+            $('#toresetwindow').on('click', function(e){
+                e.preventDefault();
+                tipDialog.close();
+                reset_window();
+            });
+        }
+    });
+    }
+
+} );
+
+$.sub( 'config:backup', function(){
+    var showList = $.dialog({
+        title: '<%:备份路由器设置%>',
+        content: $('#selectBackupList').html(),
+        lock: true,
+        width: 590
+    });
+
+    $('#btnstartbackup').on('click', function(e){
+        e.preventDefault();
+        var requestURL = '<%=luci.dispatcher.build_url("api", "misystem","c_backup")%>';
+        var requestData = {};
+        var keys = [];
+        var inputed = $('.dialog-select-list input:checked');
+        if( inputed.length > 0 ){
+            $( inputed ).each(function(index, item){
+                keys.push( $(item).attr('data-key') );
+            });
+            keys = keys.join(',');
+            requestData.keys = keys;
+            $.getJSON( requestURL, requestData, function( rsp ){
+                showList.close();
+                if( rsp.code==0 ){
+                    // download
+                    window.location.href = '//' + rsp.url;
+                } else {
+                    $.pub( 'config:backupfail', {msg: rsp.msg} );
+                }
+            });
+        }else{
+            $.alert('<%:至少选择1个%>');
+        }
+    });
+});
+
+$.sub( 'config:backupfail', function(evt, data){
+    var msg = data.msg;
+    var failDialog = $.dialog({
+        title: '<%:备份路由器设置%>',
+        content: $('#backupFail').html(),
+        lock: true,
+        width: 590,
+        initialize: function(){
+            $('.dialog-backup-tips p span').text( msg );
+            $('.dialog-backup-tips .btn').on('click', function(e){
+                e.preventDefault();
+                failDialog.close();
+                $.pub( 'config:backup' );
+            });
+        }
+    });
+});
+
+$.sub( 'config:restore', function(evt, data){
+    var keys = data.keys;
+    var tpl = '<li><label><input type="checkbox" name="item" data-key="{$k}" checked="true" /> <span class="name">{$v}</span></label></li>';
+    var html = [];
+    var li = '';
+    for(var key in keys ){
+        li = StringH.tmpl(tpl, {
+            k: key,
+            v: keys[key]
+        });
+        html.push( li );
+    }
+
+    var showRestoreList = $.dialog({
+        title: '<%:从备份恢复路由器设置%>',
+        content: $('#selectRestoreList').html(),
+        lock: true,
+        width: 490,
+        initialize: function(){
+            $('.dialog-select-list ul').html( html.join('') );
+        }
+    });
+
+    $('#btnstartrestore').on('click', function(e){
+        e.preventDefault();
+        var requestURL = '<%=luci.dispatcher.build_url("api", "misystem","c_restore")%>';
+        var requestData = {};
+        var keys = [];
+        var inputed = $('.dialog-select-list input:checked');
+        if( inputed.length > 0 ){
+            $( inputed ).each(function(index, item){
+                keys.push( $(item).attr('data-key') );
+            });
+            keys = keys.join(',');
+            requestData.keys = keys;
+            $.getJSON( requestURL, requestData, function( rsp ){
+                showRestoreList.close();
+                if( rsp.code==0 ){
+                    $.pub( 'config:restoresucc' );
+                } else {
+                    $.pub( 'config:restorefail', {msg: rsp.msg} );
+                }
+            });
+        }else{
+            $.alert('<%:至少选择1个%>');
+        }
+    });
+});
+
+$.sub( 'config:restoresucc', function(evt, data){
+
+    var succDialog = $.dialog({
+        title: '<%:从备份恢复路由器设置%>',
+        content: $('#restoresucc').html(),
+        lock: true,
+        width: 490,
+        initialize: function(){
+            $('.dialog-backup-tips .btn').on('click', function(e){
+                e.preventDefault();
+                succDialog.close();
+                reboot_window();
+            });
+        }
+    });
+});
+
+$.sub( 'config:restorefail', function(evt, data){
+    var msg = data.msg;
+    var failDialog = $.dialog({
+        title: '<%:从备份恢复路由器设置%>',
+        content: $('#restorefail').html(),
+        lock: true,
+        width: 490,
+        initialize: function(){
+            $('.dialog-backup-tips p span').text( msg );
+            $('.dialog-backup-tips .btn').on('click', function(e){
+                e.preventDefault();
+                failDialog.close();
+                $.pub( 'config:upload' );
+            });
+        }
+    });
+});
+
+$.sub( 'config:upload', function(){
+    var showUpload = $.dialog({
+        title: '<%:从备份恢复路由器设置%>',
+        content: $('#configUpload').html(),
+        lock: true,
+        width: 490
+    });
+    function uploadfile(){
+
+        var options = {
+            type: 'post',
+            dataType: "json",
+            url: '<%=luci.dispatcher.build_url("api", "misystem","c_upload")%>',
+            success: function( rsp ) {
+                console.log( rsp );
+                if( rsp.code == 0 ){
+                    showUpload.close();
+                    $.pub( 'config:restore', rsp.des );
+                }else{
+                    $.alert( rsp.msg );
+                }
+            },
+            error: function() {
+                $.alert( '<%:系统错误，请重试。%>' ).lock();
+                $('#configuploadFormBtn').show();
+            }
+        };
+        $('#configuploadFormBtn').hide();
+        $( '#configuploadForm' ).ajaxUpload( options );
+    }
+    $( 'body' ).delegate( '#configimage', 'change', function( e ){
+        $( '#configuploadFormBtn' ).on( 'enable', function( e, data ) {
+            if ( data.disabled ) {
+                this.className = 'btn btn-primary-disabled btn-block';
+                this.disabled = true;
+            } else {
+                this.className = 'btn btn-primary btn-block';
+                this.disabled = false;
+            }
+        });
+
+        var image = $( '#configimage' );
+        var err = $( '#configuploadForm .t' );
+        var item = $( '#configuploadForm .item' ).eq( 0 );
+        if ( image.val() == '' ) {
+            err.html( '<%:你未选择文件，请重新选择%>' ).show();
+            item.addClass( 'item-err' );
+            $( '#configuploadFormBtn' ).trigger( 'enable', {disabled: true} );
+            return false;
+        }
+        var val = image.val();
+        var ext = val.substring( val.lastIndexOf( '.' ) + 1 )
+        var ext1 = val.substring( val.lastIndexOf( '\\' ) + 1 );
+
+        $("#text").html(ext1);
+        ext = $.trim( ext );
+        var validExt = ext == 'gz' || ext == 'GZ';
+        if ( !validExt ) {
+            err.html( '<%:文件格式错误，请重新选择%>' ).show();
+            item.addClass( 'item-err' );
+            $( '#configuploadFormBtn' ).trigger( 'enable', {disabled: true} );
+            return false;
+        }
+        err.html('');
+        item.removeClass( 'item-err' );
+        $( '#configuploadFormBtn' ).trigger( 'enable', {disabled: false} );
+    } );
+    $( 'body' ).undelegate( '#configuploadFormBtn', 'click' );
+    $( 'body' ).delegate( '#configuploadFormBtn', 'click', function( e ){
+        e.preventDefault();
+        uploadfile();
+        return false;
+    });
+});
+
+$.sub( 'config:init', function(){
+    $('#btnBackupconfig').on('click', function(e){
+        e.preventDefault();
+        $.pub( 'config:backup' );
+    });
+    $('#btnUploadconfig').on('click', function(e){
+        e.preventDefault();
+        $.pub( 'config:upload' );
+    });
+});
+
+$.sub('datetime', function(){
+
+        getMaxDays = function(year, month) {
+            var tmpDate = new Date(year, month-1, 1),
+                d = 28, m;
+            m = tmpDate.getMonth();
+            d = 28;
+            while (tmpDate.getMonth() == m) {
+                d ++;
+                tmpDate.setDate(d);
+            }
+            return d - 1;
+        };
+        randerYear = function(y){
+            var min = y - 10,
+                max = y + 10;
+            var options = [];
+            for (var i = min; i <= max; i++) {
+                if (y === i) {
+                    options.push('<option value="'+ i +'" selected="selected">'+ i +'</option>');
+                } else {
+                    options.push('<option value="'+ i +'">'+ i +'</option>');
+                }
+            }
+            return options.join('');
+        };
+        randerMonth = function(m){
+            var options = [];
+            for (var i = 1; i <= 12; i++) {
+                if (m === i) {
+                    options.push('<option value="'+ i +'" selected="selected">'+ i +'</option>');
+                } else {
+                    options.push('<option value="'+ i +'">'+ i +'</option>');
+                }
+            }
+            return options.join('');
+        };
+        randerDay = function(year, month, day){
+            var days = getMaxDays(year, month);
+            var options = [];
+            for (var i = 1; i <= days; i++) {
+                if (day === i) {
+                    options.push('<option value="'+ i +'" selected="selected">'+ i +'</option>');
+                } else {
+                    options.push('<option value="'+ i +'">'+ i +'</option>');
+                }
+            }
+            return options.join('');
+        };
+        randerHour = function(h){
+            var options = [];
+            for (var i = 0; i <= 23; i++) {
+                if (h === i) {
+                    options.push('<option value="'+ i +'" selected="selected">'+ i +'</option>');
+                } else {
+                    options.push('<option value="'+ i +'">'+ i +'</option>');
+                }
+            }
+            return options.join('');
+        };
+        randerMin = function(m){
+            var options = [];
+            for (var i = 0; i <= 59; i++) {
+                if (m === i) {
+                    options.push('<option value="'+ i +'" selected="selected">'+ i +'</option>');
+                } else {
+                    options.push('<option value="'+ i +'">'+ i +'</option>');
+                }
+            }
+            return options.join('');
+        };
+        randerSec = function(s){
+            var options = [];
+            for (var i = 0; i <= 59; i++) {
+                if (s === i) {
+                    options.push('<option value="'+ i +'" selected="selected">'+ i +'</option>');
+                } else {
+                    options.push('<option value="'+ i +'">'+ i +'</option>');
+                }
+            }
+            return options.join('');
+        };
+        randerTimezone = function(currentTimezone){
+            var options = [],val;
+            for (var i = 0; i < TIMEZONEMAP.length; i++) {
+                if (TIMEZONEMAP[i]["timezone"] == currentTimezone){
+                    options.push('<option value="'+ TIMEZONEMAP[i]["timezone"] +'" selected="selected">'+ TIMEZONEMAP[i]["name"] +'</option>');
+                } else {
+                    options.push('<option value="'+ TIMEZONEMAP[i]["timezone"] +'">'+ TIMEZONEMAP[i]["name"] +'</option>');
+                }
+            }
+            return options.join('');
+        };
+
+    var routerDatetime;
+
+    var locationMap={
+        "CN": "<%:中国%>",
+        "AE": "<%:阿拉伯联合酋长国%>",
+        "AU": "<%:澳大利亚%>",
+        "BE": "<%:比利时%>",
+        "BR": "<%:巴西%>",
+        "CH": "<%:瑞士%>",
+        "CL": "<%:智利%>",
+        "DE": "<%:德国%>",
+        "DK": "<%:丹麦%>",
+        "EG": "<%:埃及%>",
+        "ES": "<%:西班牙%>",
+        "FI": "<%:芬兰%>",
+        "FR": "<%:法国%>",
+        "ID": "<%:印度尼西亚%>",
+        "IE": "<%:爱尔兰%>",
+        "IL": "<%:以色列%>",
+        "IT": "<%:意大利%>",
+        "MA": "<%:摩洛哥%>",
+        "MY": "<%:马来西亚%>",
+        "NG": "<%:尼日利亚%>",
+        "NL": "<%:荷兰%>",
+        "NO": "<%:挪威%>",
+        "PE": "<%:秘鲁%>",
+        "PL": "<%:波兰%>",
+        "RU": "<%:俄罗斯%>",
+        "SE": "<%:瑞典%>",
+        "SG": "<%:新加坡%>",
+        "TH": "<%:泰国%>",
+        "TR": "<%:土耳其%>",
+        "UA": "<%:乌克兰%>",
+        "VN": "<%:越南%>",
+        "GB": "<%:英国%>",
+        "NZ": "<%:新西兰%>",
+        "KR": "<%:韩国%>",
+        "PT": "<%:葡萄牙%>",
+        "KE": "<%:肯尼亚%>",
+        "MX": "<%:墨西哥%>",
+        "JP": "<%:日本%>",
+		"BG": "<%:保加利亚%>",
+		"CO": "<%:哥伦比亚%>",
+		"CZ": "<%:捷克%>",
+		"EE": "<%:爱沙尼亚%>",
+		"GR": "<%:希腊%>",
+		"HR": "<%:克罗地亚%>",
+		"HU": "<%:匈牙利%>",
+		"JO": "<%:约旦%>",
+		"KH": "<%:柬埔寨%>",
+		"LT": "<%:立陶宛%>",
+		"LV": "<%:拉脱维亚%>",
+		"MT": "<%:马耳他%>",
+		"RO": "<%:罗马尼亚%>",
+		"SK": "<%:斯洛伐克%>",
+		"LA": "<%:老挝%>"
+    };
+
+    $.getJSON('<%=luci.dispatcher.build_url("api","xqsystem","get_location")%>', function(rsp){
+        if (rsp.code === 0) {//  code非0代表失败
+            // {"code":0 ,location="地区简称"}
+            //zone value
+            $('#zoneVal').html(locationMap[rsp.location]);
+        }
+    });
+
+
+        $.getJSON('<%=luci.dispatcher.build_url("api","misystem","sys_time")%>', function(rsp){
+            if (rsp.code === 0) {
+                var timezone = rsp.time.timezone;
+                // var index = rsp.time.index;
+                var tpldatetime = '<%:{$year}年{$month}月{$day}日 {$hour}:{$min}:{$sec}%>';
+                var datetiem = StringH.tmpl(tpldatetime, rsp.time);
+
+                routerDatetime = rsp.time;
+
+                var roterDate = new Date(rsp.time.year, rsp.time.month - 1, rsp.time.day, rsp.time.hour, rsp.time.min, rsp.time.sec).getTime();
+                var clientDate = new Date().getTime();
+                var dateDiff = clientDate - roterDate;
+
+                var name = getTimezoneMap(1,timezone);
+                $('#timezoneval').html(name);
+				$('#timezoneval2').html(name);
+                // $('#timezoneval').html(getTimezone(timezone,index));
+
+
+                setInterval(function(){
+                    var d1 = new Date(new Date().getTime() - dateDiff);
+                    var y=d1.getFullYear();
+                    var m = d1.getMonth()+1;
+                    var d = d1.getDate() ;
+                    var h=d1.getHours();
+                    var m2=d1.getMinutes();
+                    var s=d1.getSeconds();
+
+                    m = m<10?"0"+m:m
+                    d = d<10?"0"+d:d;
+                    h = h<10?"0"+h:h;
+                    m2 = m2<10?"0"+m2:m2;
+                    s = s<10?"0"+s:s;
+
+                    var dStr = ""+m+"/"+d+"/"+y+"  " +h+":"+m2+":"+s;
+                    // var dStr = DateH.format(d1,"<%:yyyy年MM月dd日 hh:mm:ss%>");
+
+                    // var dStr = DateH.format(d,"<%:yyyy年MM月dd日 hh:mm:ss%>");
+                    $('#datetiemval').html(dStr);
+                    $('#datetiemval2').html(dStr);
+                }, 1000);
+                $('#datetiemval').html(datetiem);
+                $('#datetiemval2').html(datetiem);
+
+                if(rsp.role === "whc_cap"){
+                    $('#zhumesh').show();
+                }else if(rsp.role === "whc_re"){
+                    $('#zimesh').show();
+                }
+            }
+        });
+
+
+    var dlgTimezone, dlgDatetime, updateDatetime;
+    updateDatetime = function(d){
+        var optionsYear = randerYear(d.year);
+        $('#year').html(optionsYear);
+        var optionsMonth = randerMonth(d.month);
+        $('#month').html(optionsMonth);
+        var optionsDay = randerDay(d.year, d.month, d.day);
+        $('#day').html(optionsDay);
+
+        var optionsHour = randerHour(d.hour);
+        $('#hour').html(optionsHour);
+        var optionsMin = randerMin(d.min);
+        $('#minute').html(optionsMin);
+        var optionsSec = randerSec(d.sec);
+        $('#second').html(optionsSec);
+    };
+
+    $('#btnTimezone').click(function(e){
+        e.preventDefault();
+        dlgTimezone = $.dialog({
+            width: 490,
+            title: '<%:更改时区%>',
+            content: $('#tpltimezone').html(),
+            lock: true
+        });
+
+            setTimeout(function(){
+                var options = randerTimezone(routerDatetime.timezone);
+                console.log(options);
+                $('#timezone').html(options);
+                $.selectBeautify({container: '.dialog-timezone'});
+            }, 200);
+        });
+
+    $('#btnDatetime').click(function(e){
+        e.preventDefault();
+        dlgDatetime = $.dialog({
+            width: 530,
+            title: '<%:更改时间%>',
+            content: $('#tpldatetime').html(),
+            lock: true
+        });
+        setTimeout(function(){
+
+            updateDatetime(routerDatetime);
+
+            var updateDays = function(){
+                var y = $('#year').val(),
+                    m = $('#month').val(),
+                    d = new Date().getDate();
+                var optionsDay = randerDay(y, m, d);
+                $('#day').html(optionsDay);
+            }
+            $('#year').on('change', updateDays);
+            $('#month').on('change', updateDays);
+        }, 200);
+    });
+
+    $('body').delegate('#btnGetNowDate', 'click', function(e){
+        e.preventDefault();
+        var dObj = {},
+            d = new Date();
+        dObj.year = d.getFullYear();
+        dObj.month = d.getMonth() + 1;
+        dObj.day = d.getDate();
+        dObj.hour = d.getHours();
+        dObj.min = d.getMinutes();
+        dObj.sec = d.getSeconds();
+        updateDatetime(dObj);
+    });
+
+        var TIMEZONEMAP = [
+                  {
+                      "name": "(UTC+0)<%:达喀尔，蒙罗维亚，圣多美，丹马克斯沙文，雷克雅未克%>",
+                      "timezone": "GMT0"
+                  },
+                  {
+                      "name": "(UTC+0)<%:加那利，法罗，马德拉，里斯本%>",
+                      "timezone": "WET0WEST,M3.5.0/1,M10.5.0"
+                  },
+                  {
+                      "name": "(UTC+0)<%:根西岛，马恩岛，泽西岛，伦敦%>",
+                      "timezone": "GMT0BST,M3.5.0/1,M10.5.0"
+                  },
+                  {
+                      "name": "(UTC+1)<%:阿布贾，阿尔及尔，突尼斯%>",
+                      "timezone": "CET-1"
+                  },
+                  {
+                      "name": "(UTC+1)<%:班吉，布拉柴维尔，杜阿拉，金沙萨，拉各斯%>",
+                      "timezone": "WAT-1"
+                  },
+                  {
+                      "name": "(UTC+1)<%:卡萨布兰卡，阿伊恩%>",
+                      "timezone": "<+01>-1"
+                  },
+                  {
+                      "name": "(UTC+1)<%:伯尔尼，柏林，哥本哈根，马德里，巴黎，罗马%>",
+                      "timezone": "CET-1CEST,M3.5.0,M10.5.0/3"
+                  },
+                  {
+                      "name": "(UTC+1)<%:都柏林%>",
+                      "timezone": "IST-1GMT0,M10.5.0,M3.5.0/1"
+                  },
+                  {
+                      "name": "(UTC+10)<%:布里斯班，林德曼%>",
+                      "timezone": "AEST-10"
+                  },
+                  {
+                      "name": "(UTC+10)<%:柯里，霍巴特，墨尔本，悉尼%>",
+                      "timezone": "AEST-10AEDT,M10.1.0,M4.1.0/3"
+                  },
+                  {
+                      "name": "(UTC+10)<%:杜蒙特杜尔维尔，乌斯特内拉，弗拉迪沃斯托克，楚克，莫尔斯比港%>",
+                      "timezone": "<+10>-10"
+                  },
+                  {
+                      "name": "(UTC+10)<%:关岛，塞班岛%>",
+                      "timezone": "ChST-10"
+                  },
+                  {
+                      "name": "(UTC+11)<%:罗德豪维岛%>",
+                      "timezone": "<+1030>-10:30<+11>-11,M10.1.0,M4.1.0"
+                  },
+                  {
+                      "name": "(UTC+11)<%:麦格理，马加丹，萨哈林，斯莱德内科林斯克，布干维尔%>",
+                      "timezone": "<+11>-11"
+                  },
+                  {
+                      "name": "(UTC+12)<%:富纳富蒂，夸贾林，马朱罗，瑙鲁%>",
+                      "timezone": "<+12>-12"
+                  },
+                  {
+                      "name": "(UTC+12)<%:斐济%>",
+                      "timezone": "<+12>-12<+13>,M11.1.0,M1.2.2/123"
+                  },
+                  {
+                      "name": "(UTC+12)<%:惠灵顿，麦克默多，奥克兰%>",
+                      "timezone": "NZST-12NZDT,M9.5.0,M4.1.0/3"
+                  },
+                  {
+                      "name": "(UTC+12:45)<%:查塔姆岛%>",
+                      "timezone": "<+1245>-12:45<+1345>,M9.5.0/2:45,M4.1.0/3:45"
+                  },
+                  {
+                      "name": "(UTC+13)<%:萨摩亚%>",
+                      "timezone": "<+13>-13<+14>,M9.5.0/3,M4.1.0/4"
+                  },
+                  {
+                      "name": "(UTC+13)<%:恩德伯里，法考福，通塔普%>",
+                      "timezone": "<+13>-13"
+                  },
+                  {
+                      "name": "(UTC+14)<%:基里蒂马蒂%>",
+                      "timezone": "<+14>-14"
+                  },
+                  {
+                      "name": "(UTC+2)<%:安曼%>",
+                      "timezone": "EET-2EEST,M3.5.4/24,M10.5.5/1"
+                  },
+                  {
+                      "name": "(UTC+2)<%:贝鲁特%>",
+                      "timezone": "EET-2EEST,M3.5.0/0,M10.5.0/0"
+                  },
+                  {
+                      "name": "(UTC+2)<%:布兰太尔，布琼布拉，哈博罗内，哈拉雷%>",
+                      "timezone": "CAT-2"
+                  },
+                  {
+                      "name": "(UTC+2)<%:开罗，特里波利，加里宁格勒%>",
+                      "timezone": "EET-2"
+                  },
+                  {
+                      "name": "(UTC+2)<%:基希讷乌%>",
+                      "timezone": "EET-2EEST,M3.5.0,M10.5.0/3"
+                  },
+                  {
+                      "name": "(UTC+2)<%:大马士革%>",
+                      "timezone": "EET-2EEST,M3.5.5/0,M10.5.5/0"
+                  },
+                  {
+                      "name": "(UTC+2)<%:雅典，布加勒斯特，赫尔辛基，基辅，马里利亚哈姆%>",
+                      "timezone": "EET-2EEST,M3.5.0/3,M10.5.0/4"
+                  },
+                  {
+                      "name": "(UTC+2)<%:加沙，希伯伦%>",
+                      "timezone": "EET-2EEST,M3.5.5/0,M10.5.6/1"
+                  },
+                  {
+                      "name": "(UTC+2)<%:耶路撒冷%>",
+                      "timezone": "IST-2IDT,M3.4.5,M10.5.0"
+                  },
+                  {
+                      "name": "(UTC+2)<%:约翰内斯堡，马塞卢，姆巴巴内%>",
+                      "timezone": "SAST-2"
+                  },
+                  {
+                      "name": "(UTC+2)<%:特罗尔%>",
+                      "timezone": "<+00>0<+02>-2,M3.5.0/1,M10.5.0/3"
+                  },
+                  {
+                      "name": "(UTC+3)<%:亚的斯亚贝巴，阿斯马拉，达累斯萨拉姆，内罗毕，塔那那利佛%>",
+                      "timezone": "EAT-3"
+                  },
+                  {
+                      "name": "(UTC+3)<%:莫斯科，辛菲罗波尔%>",
+                      "timezone": "MSK-3"
+                  },
+                  {
+                      "name": "(UTC+3)<%:巴格达，科威特，卡塔尔，利雅得，伊斯坦布尔%>",
+                      "timezone": "<+03>-3"
+                  },
+                  {
+                      "name": "(UTC+3:30)<%:德黑兰%>",
+                      "timezone": "<+0330>-3:30<+0430>,J79/24,J263/24"
+                  },
+                  {
+                      "name": "(UTC+4)<%:迪拜，阿斯特拉罕，萨拉托夫，马海，毛里求斯%>",
+                      "timezone": "<+04>-4"
+                  },
+                  {
+                      "name": "(UTC+4:30)<%:喀布尔%>",
+                      "timezone": "<+0430>-4:30"
+                  },
+                  {
+                      "name": "(UTC+5)<%:卡拉奇%>",
+                      "timezone": "PKT-5"
+                  },
+                  {
+                      "name": "(UTC+5)<%:阿克托贝，杜尚贝，撒马尔罕，塔什干，叶卡捷琳堡%>",
+                      "timezone": "<+05>-5"
+                  },
+                  {
+                      "name": "(UTC+5:30)<%:科伦坡%>",
+                      "timezone": "<+0530>-5:30"
+                  },
+                  {
+                      "name": "(UTC+5:30)<%:加尔各答%>",
+                      "timezone": "IST-5:30"
+                  },
+                  {
+                      "name": "(UTC+5:45)<%:加德满都%>",
+                      "timezone": "<+0545>-5:45"
+                  },
+                  {
+                      "name": "(UTC+6)<%:沃斯托克，阿拉木图，达卡，鄂木斯克，廷布%>",
+                      "timezone": "<+06>-6"
+                  },
+                  {
+                      "name": "(UTC+6:30)<%:仰光，科科斯%>",
+                      "timezone": "<+0630>-6:30"
+                  },
+                  {
+                      "name": "(UTC+7)<%:河内，曼谷，巴瑙尔，胡志明，新西伯利亚%>",
+                      "timezone": "<+07>-7"
+                  },
+                  {
+                      "name": "(UTC+7)<%:雅加达，坤甸%>",
+                      "timezone": "WIB-7"
+                  },
+                  {
+                      "name": "(UTC+8)<%:文莱，伊尔库茨克，吉隆坡，新加坡，乌兰巴托%>",
+                      "timezone": "<+08>-8"
+                  },
+                  {
+                      "name": "(UTC+8)<%:中国香港%>",
+                      "timezone": "HKT-8"
+                  },
+                  {
+                      "name": "(UTC+8)<%:中国澳门，上海，中国台北%>",
+                      "timezone": "CST-8"
+                  },
+                  {
+                      "name": "(UTC+8)<%:望加锡%>",
+                      "timezone": "WITA-8"
+                  },
+                  {
+                      "name": "(UTC+8)<%:马尼拉%>",
+                      "timezone": "PST-8"
+                  },
+                  {
+                      "name": "(UTC+8)<%:佩思%>",
+                      "timezone": "AWST-8"
+                  },
+                  {
+                      "name": "(UTC+8:45)<%:尤克拉%>",
+                      "timezone": "<+0845>-8:45"
+                  },
+                  {
+                      "name": "(UTC+9)<%:奇塔，帝力，坎迪加，雅库茨克，帕劳%>",
+                      "timezone": "<+09>-9"
+                  },
+                  {
+                      "name": "(UTC+9)<%:查亚普拉%>",
+                      "timezone": "WIT-9"
+                  },
+                  {
+                      "name": "(UTC+9)<%:平壤，首尔%>",
+                      "timezone": "KST-9"
+                  },
+                  {
+                      "name": "(UTC+9)<%:东京%>",
+                      "timezone": "JST-9"
+                  },
+                  {
+                      "name": "(UTC+9:30)<%:阿德莱德，布罗肯希尔%>",
+                      "timezone": "ACST-9:30ACDT,M10.1.0,M4.1.0/3"
+                  },
+                  {
+                      "name": "(UTC+9:30)<%:达尔文%>",
+                      "timezone": "ACST-9:30"
+                  },
+                  {
+                      "name": "(UTC-1)<%:佛得角%>",
+                      "timezone": "<-01>1"
+                  },
+                  {
+                      "name": "(UTC-1)<%:斯科尔斯比松德，亚速尔群岛%>",
+                      "timezone": "<-01>1<+00>,M3.5.0/0,M10.5.0/1"
+                  },
+                  {
+                      "name": "(UTC-10)<%:阿达克%>",
+                      "timezone": "HST10HDT,M3.2.0,M11.1.0"
+                  },
+                  {
+                      "name": "(UTC-10)<%:火奴鲁鲁%>",
+                      "timezone": "HST10"
+                  },
+                  {
+                      "name": "(UTC-10)<%:拉罗汤加，塔希提岛%>",
+                      "timezone": "<-10>10"
+                  },
+                  {
+                      "name": "(UTC-11)<%:中途岛，帕果帕果%>",
+                      "timezone": "SST11"
+                  },
+                  {
+                      "name": "(UTC-11)<%:纽埃%>",
+                      "timezone": "<-11>11"
+                  },
+                  {
+                      "name": "(UTC-2)<%:诺罗尼亚，南乔治亚岛%>",
+                      "timezone": "<-02>2"
+                  },
+                  {
+                      "name": "(UTC-3)<%:布宜诺斯艾利斯，圣路易斯，马塞奥，蒙得维的亚，帕拉马里博%>",
+                      "timezone": "<-03>3"
+                  },
+                  {
+                      "name": "(UTC-3)<%:戈塔布%>",
+                      "timezone": "<-03>3<-02>,M3.5.0/-2,M10.5.0/-1"
+                  },
+                  {
+                      "name": "(UTC-3)<%:米克隆%>",
+                      "timezone": "<-03>3<-02>,M3.2.0,M11.1.0"
+                  },
+                  {
+                      "name": "(UTC-3:30)<%:圣约翰斯%>",
+                      "timezone": "NST3:30NDT,M3.2.0,M11.1.0"
+                  },
+                  {
+                      "name": "(UTC-4)<%:勃朗萨布隆，格林纳达，西班牙港，波多黎各，圣多明各%>",
+                      "timezone": "AST4"
+                  },
+                  {
+                      "name": "(UTC-4)<%:亚松森%>",
+                      "timezone": "<-04>4<-03>,M10.1.0/0,M3.4.0/0"
+                  },
+                  {
+                      "name": "(UTC-4)<%:坎波格兰德，加拉加斯，圭亚那，拉巴斯，波尔图韦略%>",
+                      "timezone": "<-04>4"
+                  },
+                  {
+                      "name": "(UTC-4)<%:格拉斯湾，鹅湾，哈利法克斯，百慕大%>",
+                      "timezone": "AST4ADT,M3.2.0,M11.1.0"
+                  },
+                  {
+                      "name": "(UTC-4)<%:圣地亚哥%>",
+                      "timezone": "<-04>4<-03>,M9.1.6/24,M4.1.6/24"
+                  },
+                  {
+                      "name": "(UTC-5)<%:阿蒂科坎，坎昆，开曼，牙买加，巴拿马%>",
+                      "timezone": "EST5"
+                  },
+                  {
+                      "name": "(UTC-5)<%:波哥大，埃里伦佩，瓜亚基尔，利马，里奥布兰科%>",
+                      "timezone": "<-05>5"
+                  },
+                  {
+                      "name": "(UTC-5)<%:底特律，拿骚，纽约，太子港，多伦多%>",
+                      "timezone": "EST5EDT,M3.2.0,M11.1.0"
+                  },
+                  {
+                      "name": "(UTC-5)<%:哈瓦那%>",
+                      "timezone": "CST5CDT,M3.2.0/0,M11.1.0/1"
+                  },
+                  {
+                      "name": "(UTC-6)<%:巴伊亚班德拉斯，梅里达，墨西哥城，蒙特雷%>",
+                      "timezone": "CST6CDT,M4.1.0,M10.5.0"
+                  },
+                  {
+                      "name": "(UTC-6)<%:伯利兹，哥斯达黎加，萨尔瓦多，危地马拉，马那瓜%>",
+                      "timezone": "CST6"
+                  },
+                  {
+                      "name": "(UTC-6)<%:芝加哥，马塔莫罗斯，新塞勒姆，雷尼河，温尼伯%>",
+                      "timezone": "CST6CDT,M3.2.0,M11.1.0"
+                  },
+                  {
+                      "name": "(UTC-6)<%:复活节岛%>",
+                      "timezone": "<-06>6<-05>,M9.1.6/22,M4.1.6/22"
+                  },
+                  {
+                      "name": "(UTC-6)<%:加拉帕戈斯%>",
+                      "timezone": "<-06>6"
+                  },
+                  {
+                      "name": "(UTC-7)<%:博伊西，剑桥湾，丹佛，埃德蒙顿，奥吉纳加%>",
+                      "timezone": "MST7MDT,M3.2.0,M11.1.0"
+                  },
+                  {
+                      "name": "(UTC-7)<%:奇瓦瓦，马萨特兰%>",
+                      "timezone": "MST7MDT,M4.1.0,M10.5.0"
+                  },
+                  {
+                      "name": "(UTC-7)<%:克丽顿，道森克里克，纳尔逊堡，赫莫西略，凤凰城%>",
+                      "timezone": "MST7"
+                  },
+                  {
+                      "name": "(UTC-8)<%:道森，洛杉矶，蒂华纳，温哥华，怀特霍斯%>",
+                      "timezone": "PST8PDT,M3.2.0,M11.1.0"
+                  },
+                  {
+                      "name": "(UTC-8)<%:皮特克恩%>",
+                      "timezone": "<-08>8"
+                  },
+                  {
+                      "name": "(UTC-9)<%:安克雷奇，朱诺，梅特拉卡特拉，诺姆，西特卡，雅库塔特%>",
+                      "timezone": "AKST9AKDT,M3.2.0,M11.1.0"
+                  },
+                  {
+                      "name": "(UTC-9)<%:甘比尔%>",
+                      "timezone": "<-09>9"
+                  },
+                  {
+                      "name": "(UTC-9:30)<%:马克萨斯群岛%>",
+                      "timezone": "<-0930>9:30"
+                  }
+              ];
+
+
+
+
+        getTimezoneMap=function(type,value){
+
+                if(type==1){//search name
+
+                    for (var i = 0; i < TIMEZONEMAP.length; i++) {
+                        if ( TIMEZONEMAP[i]['timezone'] === value) {
+                            return TIMEZONEMAP[i]['name']
+                        }
+
+                    }
+
+
+
+                }else{//search zone
+
+                    for (var i = 0; i < TIMEZONEMAP.length; i++) {
+                        if ( TIMEZONEMAP[i]['name'] === value) {
+                            return TIMEZONEMAP[i]['timezone']
+                        }
+
+                    }
+                }
+
+            };
+
+            $('body').delegate('#btnTimezoneSubmit', 'click', function(e){
+                e.preventDefault();
+                var timezone = $('#timezone').val();
+
+                // var timezone = getTimezoneMap(2,timezone1);
+                // var index;
+                // $('#timezone option').each(function(i){
+                //     if (this.selected == true) {
+                //         for(var j = 0; j < indexDict[timezone].length; j++){
+                //             if (indexDict[timezone][j] == i) {
+                //                 index = j;
+                //             }
+                //          }
+
+                //     }
+                // })
+                $.post('<%=luci.dispatcher.build_url("api","misystem","set_sys_time")%>', {timezone: timezone}, function(rsp){
+                    rsp = $.parseJSON(rsp);
+                    if (rsp.code === 0) {
+                        dlgTimezone.close();
+                        location.reload();
+                    } else {
+                        $.alert(rsp.msg);
+                    }
+                });
+            });
+
+    $('body').delegate('#btnDatetimeSubmit', 'click', function(e){
+        e.preventDefault();
+        var time = $('#year').val() + '-' + $('#month').val() + '-' + $('#day').val() + ' ' + $('#hour').val() + ':' + $('#minute').val() + ':' + $('#second').val();
+        $.post('<%=luci.dispatcher.build_url("api","misystem","set_sys_time")%>', {time: time}, function(rsp){
+            rsp = $.parseJSON(rsp);
+            if (rsp.code === 0) {
+                dlgDatetime.close();
+                $.alert('<%:设置成功，稍后生效，请等待一会刷新。%>');
+            } else {
+                $.alert(rsp.msg);
+            }
+        });
+    });
+
+});
+
+$(function(){
+    $.pub( 'upgrade:check' );
+    $.pub( 'upgrade:download' );
+    $.pub( 'upgrade:upload' );
+    $.pub( 'uploadlog' );
+    $.pub( 'reset' );
+    if (document.getElementById('lang')) {
+        $.pub( 'langset' );
+    }
+    $.pub( 'config:init' );
+    $.pub('datetime');
+});
+</script>

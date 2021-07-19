@@ -104,6 +104,9 @@ done
 # as a last-ditch effort, change the *.miwifi.com hostnames to localhost
 sed -i 's@\w\+.miwifi.com@localhost@g' $FSDIR/etc/config/miwifi
 
+# replace luci from international firmware
+cp -r lua/luci/view $FSDIR/usr/lib/lua/luci/
+
 # remove pre-selected DNS option
 export DNS="                    <option value="2"><%:花生壳（oray.com）%></option>"
 sed -i '98s|.*|'"$DNS"'|' $FSDIR/usr/lib/lua/luci/view/web/setting/ddns.htm
@@ -122,7 +125,7 @@ sed -i '102s|.*|'"$DNS_CUSTOM"'|' $FSDIR/usr/lib/lua/luci/view/web/setting/ddns.
 
 >&2 echo "done adding more ddns option and set it as pre-selected"
 
-# cat "$FSDIR/usr/lib/lua/luci/view/web/setting/ddns.htm"
+cat $FSDIR/usr/lib/lua/luci/view/web/setting/ddns.htm
 
 # adding new option in dns service
 echo "\"dyndns.fr\"	\"update_custom_dns.sh\"" >> "$FSDIR/etc/ddns/services"

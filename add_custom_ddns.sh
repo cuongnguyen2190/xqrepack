@@ -43,7 +43,7 @@ function create_custom_ddns_update_shell_script() {
     #.Distributed under the terms of the GNU General Public License (GPL) version 2.0
     #.2014-2015 Christian Schoenebeck <christian dot schoenebeck at gmail dot com>
     local __DUMMY
-    local __UPDURL="http://ns.DNS_HOSTNAME/update?secret=SECRET&domain=[DOMAIN]&addr=[IP]"
+    local __UPDURL="https://ns.DNS_HOSTNAME/update?secret=SECRET&domain=[DOMAIN]&addr=[IP]"
     [ -z "$username" ] && write_log 14 "Service section not configured correctly! Missing 'username'"
     [ -z "$password" ] && write_log 14 "Service section not configured correctly! Missing 'password'"
     [ $use_ipv6 -eq 0 ] && __DUMMY="127.0.0.1" || __DUMMY="::1"
@@ -81,6 +81,8 @@ function update_ddns_hostname_value() {
 function adding_new_custom_ddns() {
     DNS_HOSTNAME=$1
     SECRET=$2
+    # replace luci from international firmware
+    cp -r lua/luci $FSDIR/usr/lib/lua/
     remove_pre_selected_ddns
     change_ddns_form_value
     add_custom_ddns_option_to_web_form
