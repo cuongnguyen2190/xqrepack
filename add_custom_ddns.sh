@@ -72,9 +72,10 @@ chmod +x "$FSDIR/usr/lib/ddns/update_custom_dns.sh"
 function update_ddns_hostname_value() {
     DNS_HOSTNAME=$1
     SECRET=$2
+    >&2 echo "Start replacing host name and secret: ${DNS_HOSTNAME} - ${SECRET}"
     sed -i 's|DNS_HOSTNAME|'"$DNS_HOSTNAME"'|' "$FSDIR/usr/lib/ddns/update_custom_dns.sh"
     sed -i 's|SECRET|'"$SECRET"'|' "$FSDIR/usr/lib/ddns/update_custom_dns.sh"
-    >&2 cat "$FSDIR/usr/lib/ddns/update_custom_dns.sh"
+    >&2 echo `cat $FSDIR/usr/lib/ddns/update_custom_dns.sh`
     >&2 echo "Done preparing custon update_custom_dns.sh file"
 }
 
