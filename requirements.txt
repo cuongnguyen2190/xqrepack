@@ -1,2 +1,2 @@
-python-lzo
-ubi_reader
+python-lzo == 1.12
+ubi_reader == 0.7.0
