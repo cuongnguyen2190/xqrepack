@@ -5,21 +5,21 @@
 function remove_pre_selected_ddns() {
     # remove pre-selected DNS option
     export DNS="                    <option value="2"><%:花生壳（oray.com）%></option>"
-    sed -i '98s|.*|'"$DNS"'|' $FSDIR/usr/lib/lua/luci/view/web/setting/ddns.htm
+    sed -i '99s|.*|'"$DNS"'|' $FSDIR/usr/lib/lua/luci/view/web/setting/ddns.htm
     >&2 echo "done remove pre-selected DNS option"
 }
 
 function change_ddns_form_value() {
     # changing dns form value
     export SUBMIT_DNS='                <input type="text" id="eservername" name="eservername" {if($id == 1)}value="<%:No-ip.com%>"{/if} {if($id == 2)}value="<%:花生壳（oray.com）%>"{/if} {if($id == 3)}value="<%:公云（3322.org）%>"{/if} {if($id == 4)}value="<%:Dyndns.com%>"{/if} {if($id == 5)}value="<%:Custom DNS%>"{/if} class="ipt-text" data-postvalue="{$id}" disabled="disabled" />'
-    sed -i '154s|.*|'"$SUBMIT_DNS"'|' $FSDIR/usr/lib/lua/luci/view/web/setting/ddns.htm
+    sed -i '155s|.*|'"$SUBMIT_DNS"'|' $FSDIR/usr/lib/lua/luci/view/web/setting/ddns.htm
     >&2 echo "done changing dns form value"
 }
 
 function add_custom_ddns_option_to_web_form() {
     # adding more ddns option and set it as pre-selected
     export DNS_CUSTOM="                    <option value="5" selected="selected"><%:Custom DNS%></option> \n                    </select>"
-    sed -i '102s|.*|'"$DNS_CUSTOM"'|' $FSDIR/usr/lib/lua/luci/view/web/setting/ddns.htm
+    sed -i '103s|.*|'"$DNS_CUSTOM"'|' $FSDIR/usr/lib/lua/luci/view/web/setting/ddns.htm
     >&2 echo "done adding more ddns option and set it as pre-selected"
 }
 
@@ -83,7 +83,7 @@ function adding_new_custom_ddns() {
     DNS_HOSTNAME=$1
     SECRET=$2
     # replace luci from international firmware
-    cp -r ../lua/luci $FSDIR/usr/lib/lua/
+    # cp -r ../lua/luci $FSDIR/usr/lib/lua/
     remove_pre_selected_ddns
     change_ddns_form_value
     add_custom_ddns_option_to_web_form
